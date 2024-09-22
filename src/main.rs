@@ -7,7 +7,7 @@ use mongodb::{
     bson:: Document,
     Client, Collection,
 };
-use serenity::all::{Guild, PartialGuild, Permissions, UnavailableGuild};
+use serenity::all::{Guild, PartialGuild, Permissions};
 use serenity::async_trait;
 use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage};
 use serenity::model::application::{Command, Interaction};
@@ -19,6 +19,20 @@ struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
+    async fn guild_create(&self, _ctx: Context, guild: Guild, is_new: Option<bool>) {
+        // TODO: Save the guild to the database
+        println!(
+            "Guild {} ({}) has been {}",
+            guild.name,
+            guild.id,
+            if is_new.unwrap_or(false) { "created" } else { "joined" }
+        );
+    }
+
+    async fn guild_update(&self, _ctx: Context, _old: Option<Guild>, _new: PartialGuild) {
+        // TODO: Update the guild in the database
+        println!("Guild {} ({}) has been updated", _new.name, _new.id);
+    }
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
 
@@ -44,20 +58,6 @@ impl EventHandler for Handler {
         )
         .await;
         println!("I created the following global slash command: {guild_command:#?}");
-    }
-
-    async fn guild_create(&self, _ctx: Context, guild: Guild, is_new: Option<bool>) {
-        // TODO: Save the guild to the database
-        println!(
-            "Guild {} ({}) has been {}",
-            guild.name,
-            guild.id,
-            if is_new.unwrap_or(false) { "created" } else { "joined" }
-        );
-    }
-    async fn guild_update(&self, _ctx: Context, _old: Option<Guild>, _new: PartialGuild) {
-        // TODO: Update the guild in the database
-        println!("Guild {} ({}) has been updated", _new.name, _new.id);
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
@@ -103,7 +103,7 @@ async fn main() {
     let my_doc = create_guild("Albion ELITE", "940226887463100415");
     println!("Found a movie:\n{:#?}", my_doc);
 
-    let token = "";
+    let token = "MTI0ODMwODY5NTMyMzExNTU0Mw.G06SH6.vuZbmoarpNWMqcjXoUxbV_o2LzyGXtRRqZD8Ng";
     let mut client = serenity::Client::builder(token, GatewayIntents::GUILD_MEMBERS | GatewayIntents::GUILDS)
         .event_handler(Handler)
         .await
