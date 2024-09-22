@@ -103,7 +103,7 @@ async fn main() {
     let my_doc = create_guild("Albion ELITE", "940226887463100415");
     println!("Found a movie:\n{:#?}", my_doc);
 
-    let token = "MTI0ODMwODY5NTMyMzExNTU0Mw.Gpx7Sg.1B2ia3FKdFtPm-XN71DRvP5nrz4_hVpo4hg3D8";
+    let token = "";
     let mut client = serenity::Client::builder(token, GatewayIntents::GUILD_MEMBERS | GatewayIntents::GUILDS)
         .event_handler(Handler)
         .await
