@@ -47,7 +47,7 @@ pub fn run(options: &[ResolvedOption]) -> String {
                 }) = sub_command.first()
                 {
                     // TODO: Implement the channel system
-                    return format!("Channel is now set to <@&{}> {}", channel.id, channel.id);
+                    return format!("Channel is now set to <#&{}> {}", channel.id, channel.id);
                 } else {
                     return "Invalid option".to_string();
                 }
