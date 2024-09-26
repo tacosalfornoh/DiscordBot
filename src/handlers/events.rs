@@ -1,85 +1,61 @@
-use serenity::all::{Command, Context, CreateInteractionResponse, CreateInteractionResponseMessage, EventHandler, Guild, GuildChannel, GuildId, Interaction, Message, PartialGuild, Permissions, Ready, Role, RoleId, TypingStartEvent};
+use serenity::all::{Command, Context, CreateInteractionResponse, CreateInteractionResponseMessage, CurrentUser, EventHandler, Guild, GuildId, Interaction, Member, Message, PartialGuild, Permissions, Ready, UnavailableGuild};
 use serenity::async_trait;
 use crate::{commands};
+use crate::handlers::database::{db_delete_guild, db_insert_guild, db_insert_member, db_update_guild};
+use crate::components::level::add_experience;
 
 pub struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
-    async fn channel_create(&self, _ctx: Context, _channel: GuildChannel) {
-        println!("Channel {} ({}) has been created", _channel.name, _channel.id);
-        // TODO: Implement the channel_create event
-    }
-    async fn channel_update(&self, _ctx: Context, _old: Option<GuildChannel>, new: GuildChannel) {
-        println!("Channel {} ({}) has been updated", new.name, new.id);
-        // TODO: Implement the channel_update event
-    }
-
     async fn guild_create(&self, _ctx: Context, guild: Guild, is_new: Option<bool>) {
+        db_insert_guild(guild.id.into(), &guild.name).await.expect("TODO: panic message");
         println!(
-            "Guild {} ({}) has been {}",
+            "Guild {} ({}) created by {} has been {}",
             guild.name,
             guild.id,
-            if is_new.unwrap_or(false) { "created" } else { "joined" }
+            guild.owner_id,
+            if is_new.unwrap_or(false) { "created" } else { "joined" },
         );
-        // TODO: Implement the guild_create event
     }
 
-    async fn guild_role_create(&self, _ctx: Context, new: Role) {
-        println!("Role {} ({}) has been created", new.name, new.id);
-        // TODO: Implement the guild_role_create event
+    async fn guild_delete(&self, _ctx: Context, incomplete: UnavailableGuild, full: Option<Guild>) {
+        println!(
+            "Guild {} ({}) has been {}",
+            incomplete.unavailable,
+            incomplete.id,
+            if full.is_none() { "deleted" } else { "left" }
+        );
+        db_delete_guild(incomplete.id.into()).await.expect("TODO: panic message");
     }
 
-    async fn guild_role_delete(&self, _ctx: Context, _guild: GuildId, role: RoleId, _guild_id: Option<Role>) {
-        println!("Role {} ({}) has been deleted", role, _guild);
-        // TODO: Implement the guild_role_delete event
-    }
-
-    async fn guild_role_update(&self, _ctx: Context, _old_data_if_available: Option<Role>, new: Role) {
-        println!("Role {} ({}) has been updated", new.name, new.id);
-        // TODO: Implement the guild_role_update event
+    async fn guild_member_addition(&self, _ctx: Context, new_member: Member) {
+        println!("User {} has joined the guild at {:?}", new_member.user.name, new_member.joined_at);
+        db_insert_member(new_member.user.id.into(), &new_member.user.name, new_member.joined_at.unwrap().to_string()).await.expect("TODO: panic message");
     }
 
     async fn guild_update(&self, _ctx: Context, _old: Option<Guild>, _new: PartialGuild) {
         println!("Guild {} ({}) has been updated", _new.name, _new.id);
-        // TODO: Implement the guild_update event
+        db_update_guild(_new.id.into(), &_new.name).await.expect("TODO: panic message");
     }
 
     async fn message(&self, _ctx: Context, msg: Message) {
-        println!("{:#?}", msg);
+        if msg.author.bot {
+            return;
+        }
         match msg.content.as_str() {
             "!ping" => {
                 if let Err(why) = msg.channel_id.say(&_ctx.http, "Pong!").await {
                     println!("Error sending message: {why:?}");
                 }
             }
-            "ciao" => {
-                msg.channel_id.broadcast_typing(&_ctx.http).await.expect("TODO: panic message");
-                //write into the channel
-
-                if let Err(why) = msg.channel_id.say(&_ctx.http, "Ciao!").await {
-                    println!("Error sending message: {why:?}");
-                }
-            }
             _ => {
-                println!("Received a message: {}", msg.content);
-            }
-        }
-        if msg.content == "!ping" {
-            // Sending a message can fail, due to a network error, an authentication error, or lack
-            // of permissions to post in the channel, so log to stdout when some error happens,
-            // with a description of it.
-            println!("Received a ping request");
-            // reply to the message onm discord
-
-            if let Err(why) = msg.channel_id.say(&_ctx.http, "Pong!").await {
-                println!("Error sending message: {why:?}");
+                add_experience(msg.author.id.into()).await;
             }
         }
     }
 
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
-
         // TODO: Registering slash commands for a guild (discord)
         let guild_id = GuildId::new(
             "940226887463100416" // * 940226887463100416 is the ID of the guild I'm in
@@ -97,16 +73,13 @@ impl EventHandler for Handler {
             &ctx.http,
             vec![
                 commands::admin::application::register(),
+                commands::admin::level::register(),
+                commands::admin::balance::register(),
                 commands::misc::ping::register(),
             ],
         )
             .await;
         println!("I created the following global slash command: {guild_command:#?}");
-    }
-
-    async fn typing_start(&self, _ctx: Context, event: TypingStartEvent) {
-        println!("User {} started typing at {} in channel {}", event.user_id, event.timestamp, event.channel_id);
-        // TODO: Implement the typing_start event
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
@@ -119,6 +92,28 @@ impl EventHandler for Handler {
                         m.permissions.unwrap().contains(Permissions::ADMINISTRATOR)
                     }) {
                         true => Some(commands::admin::application::run(&command.data.options())),
+                        false => {
+                            Some("You do not have permission to use this command.".to_string())
+                        }
+                    }
+                }
+                "level" => {
+                    // TODO: Check if the user has ADMINISTRATOR permissions
+                    match command.member.as_ref().map_or(false, |m| {
+                        m.permissions.unwrap().contains(Permissions::ADMINISTRATOR)
+                    }) {
+                        true => Some(commands::admin::level::run(&command.data.options())),
+                        false => {
+                            Some("You do not have permission to use this command.".to_string())
+                        }
+                    }
+                }
+                "balance" => {
+                    // TODO: Check if the user has ADMINISTRATOR permissions
+                    match command.member.as_ref().map_or(false, |m| {
+                        m.permissions.unwrap().contains(Permissions::ADMINISTRATOR)
+                    }) {
+                        true => Some(commands::admin::balance::run(&command.data.options())),
                         false => {
                             Some("You do not have permission to use this command.".to_string())
                         }

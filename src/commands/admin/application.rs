@@ -9,77 +9,72 @@ pub fn run(options: &[ResolvedOption]) -> String {
         ..
     }) = options.first()
     {
-        match sub_command_name {
-            &"enabled" => {
+        match sub_command_name.to_string().as_str() {
+            "enabled" => {
                 if let Some(ResolvedOption {
                     value: ResolvedValue::Boolean(player),
                     ..
                 }) = sub_command.first()
                 {
-                    // TODO: Implement the application system
-                    return format!(
+                    format!(
                         "Application system is now {}",
                         if *player { "enabled" } else { "disabled" }
-                    );
+                    )
                 } else {
-                    return "Invalid option".to_string();
+                    "Invalid option".to_string()
                 }
             }
-            &"recruitment" => {
+            "recruitment" => {
                 if let Some(ResolvedOption {
                     value: ResolvedValue::Boolean(player),
                     ..
                 }) = sub_command.first()
                 {
-                    // TODO: Implement the recruitment system
-                    return format!(
+                    format!(
                         "Recruitment is now {}",
                         if *player { "enabled" } else { "disabled" }
-                    );
+                    )
                 } else {
-                    return "Invalid option".to_string();
+                    "Invalid option".to_string()
                 }
             }
-            &"channel" => {
+            "channel" => {
                 if let Some(ResolvedOption {
                     value: ResolvedValue::Channel(channel),
                     ..
                 }) = sub_command.first()
                 {
-                    // TODO: Implement the channel system
-                    return format!("Channel is now set to <#&{}> {}", channel.id, channel.id);
+                    format!("Channel is now set to <#{}> {}", channel.id, channel.id)
                 } else {
-                    return "Invalid option".to_string();
+                    "Invalid option".to_string()
                 }
             }
-            &"role-member" => {
+            "role-member" => {
                 if let Some(ResolvedOption {
                     value: ResolvedValue::Role(role),
                     ..
                 }) = sub_command.first()
                 {
-                    // TODO: Implement the role-member system
-                    return format!("Role-member is now set to <@&{}> {}", role.id, role.id);
+                    format!("Role-member is now set to <@&{}> {}", role.id, role.id)
                 } else {
-                    return "Invalid option".to_string();
+                    "Invalid option".to_string()
                 }
             }
-            &"role-manager" => {
+            "role-manager" => {
                 if let Some(ResolvedOption {
                     value: ResolvedValue::Role(role),
                     ..
                 }) = sub_command.first()
                 {
-                    // TODO: Implement the role-manager system
-                    return format!("Role-manager is now set to <@&{}> {}", role.id, role.id);
+                    format!("Role-manager is now set to <@&{}> {}", role.id, role.id)
                 } else {
-                    return "Invalid option".to_string();
+                    "Invalid option".to_string()
                 }
             }
-            _ => return "Invalid subcommand".to_string(),
+            _ => "Invalid subcommand".to_string(),
         }
     } else {
-        return "Invalid subcommand".to_string();
+        "Invalid subcommand".to_string()
     }
 }
 

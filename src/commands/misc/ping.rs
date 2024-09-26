@@ -6,5 +6,5 @@ pub fn run(_options: &[ResolvedOption]) -> String {
 }
 
 pub fn register() -> CreateCommand {
-    CreateCommand::new("ping").description("Replies with Pongg!!")
+    CreateCommand::new("ping").description("Replies with Pong!!")
 }
